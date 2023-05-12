@@ -7,9 +7,9 @@ for filename in ['AUTHORS', 'CONTRIBUTORS']:
     text = ''
     for line in f:
       if filename == 'AUTHORS':
-        text += '// fast_float by ' + line
+        text += f'// fast_float by {line}'
       if filename == 'CONTRIBUTORS':
-        text += '// with contributions from ' + line
+        text += f'// with contributions from {line}'
     processed_files[filename] = text + '//\n'
 
 # licenses
@@ -25,20 +25,15 @@ for filename in ['LICENSE-MIT', 'LICENSE-APACHE']:
       *lines[179:-1]
     ]
 
-  text = ''
-  for line in lines:
-    text += '//    ' + line.strip() + '\n'
+  text = ''.join(f'//    {line.strip()}' + '\n' for line in lines)
   processed_files[filename] = text
 
 # code
 for filename in [ 'fast_float.h', 'float_common.h', 'ascii_number.h', 
                   'fast_table.h', 'decimal_to_binary.h', 'bigint.h',
                   'ascii_number.h', 'digit_comparison.h', 'parse_number.h']:
-  with open('include/fast_float/' + filename) as f:
-    text = ''
-    for line in f:
-      if line.startswith('#include "'): continue
-      text += line
+  with open(f'include/fast_float/{filename}') as f:
+    text = ''.join(line for line in f if not line.startswith('#include "'))
     processed_files[filename] = '\n' + text
 
 # command line
@@ -62,14 +57,14 @@ def license_content(license_arg):
     ]
 
   if license_arg in ('DUAL', 'MIT'):
-    result.append('// MIT License Notice\n//\n')
-    result.append(processed_files['LICENSE-MIT'])
-    result.append('//\n')
+    result.extend(('// MIT License Notice\n//\n',
+                   processed_files['LICENSE-MIT'], '//\n'))
   if license_arg in ('DUAL', 'APACHE'):
-    result.append('// Apache License (Version 2.0) Notice\n//\n')
-    result.append(processed_files['LICENSE-APACHE'])
-    result.append('//\n')
-
+    result.extend((
+        '// Apache License (Version 2.0) Notice\n//\n',
+        processed_files['LICENSE-APACHE'],
+        '//\n',
+    ))
   return result
 
 text = ''.join([

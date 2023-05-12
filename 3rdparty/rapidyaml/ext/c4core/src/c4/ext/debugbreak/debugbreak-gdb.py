@@ -64,9 +64,7 @@ def _gdb_show_version_parse(version_str):
         if i.startswith('--'):
             (k, v) = i[2:].split('=')
             d[k] = v
-        else:
-            if not i:
-                continue
+        elif i:
             d['target'] = i
     return d
 
@@ -105,11 +103,7 @@ def _next_instn_jump_len(gdb_frame):
     if arch_name.startswith('powerpc:'):
         # 'powerpc:common64' on ppc64 big endian
         i = bytes(gdb.selected_inferior().read_memory(gdb.parse_and_eval('$pc'), 4))
-        if (i == b'\x7d\x82\x10\x08') or (i == b'\x08\x10\x82\x7d'):
-            return 4
-        else: # not stopped on a breakpoint instruction
-            return None
-
+        return 4 if i in {b'\x7d\x82\x10\x08', b'\x08\x10\x82\x7d'} else None
     triplet = _target_triplet()
     if re.match(r'^arm-', triplet):
         i = bytes(gdb.selected_inferior().read_memory(gdb.parse_and_eval('$pc'), 4))
@@ -142,7 +136,7 @@ def _debugbreak_step():
         bp.silent = True
         temp_breakpoint_num = bp.number
         gdb.events.stop.connect(on_stop_event)
-        gdb.execute('jump  ' + loc)
+        gdb.execute(f'jump  {loc}')
 
 def _debugbreak_continue():
     try:
@@ -157,7 +151,7 @@ def _debugbreak_continue():
         gdb.execute('continue')
     else:
         loc = '*($pc + %d)' % (instn_len,)
-        gdb.execute('jump  ' + loc)
+        gdb.execute(f'jump  {loc}')
 
 class _DebugBreakStep(gdb.Command):
     '''Usage: debugbreak-step

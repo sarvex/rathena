@@ -12,10 +12,8 @@ def parse_setarray(s):
     res = re.match(r".*\],(.*);", s)
     # print(res.group(1))
 
-    spl = res.group(1).split(',')
-    l = [spl[i:i + 2] for i in range(0, len(spl), 2)]
-    # print(l)
-    return l
+    spl = res[1].split(',')
+    return [spl[i:i + 2] for i in range(0, len(spl), 2)]
 
 
 def parse_disp(s):
@@ -26,17 +24,9 @@ def parse_disp(s):
     # Disp("Comodo Field",1,9);
     res = re.match(r""".*"(.*)".*,.*(\d+),(\d+)\).*""", s)
     if res:
-        # print(res.group(1))
-        # print(res.group(2))
-        # print(res.group(3))
-        l = [f"{res.group(1)} {i}" for i in range(int(res.group(2)), int(res.group(3)) + 1)]
-        # print(l)
-        return l
-
+        return [f"{res[1]} {i}" for i in range(int(res[2]), int(res[3]) + 1)]
     res = re.match(r'.*Disp\("(.*)"\);.*', s)
-    l = res.group(1).split(':')
-    # print(l)
-    return l
+    return res[1].split(':')
 
 
 def parse_pick(s):
@@ -48,18 +38,18 @@ def parse_pick(s):
         # need to return lsit of fields
         res = re.match(r'Pick\("",(.*)\).*', s)
         # print(res.group(1))
-        l = res.group(1).split(',')
+        l = res[1].split(',')
         l = [m[1:-1] for m in l], 0
         return l
     elif ',' in s:
         # need to subtract number
         res = re.match(r""".*\("(.*)".*(\d+).*\)""", s)
         # print(res.group(1))
-        return res.group(1), int(res.group(2))
+        return res[1], int(res[2])
     else:
         res = re.match(r""".*\("(.*)"\)""", s)
         # print(res.group(1))
-        return res.group(1), 0
+        return res[1], 0
 
 
 def split_disp_pick(s):
@@ -70,7 +60,7 @@ def split_disp_pick(s):
     res = re.match(r""".*(Disp\(.*\);).*(Pick\(.*\);).*""", s)
     # print(res.group(1))
     # print(res.group(2))
-    return res.group(1), res.group(2)
+    return res[1], res[2]
 
 
 def gen_mapname(map, i, diff):
@@ -96,7 +86,7 @@ def main():
     #     '	 setarray @c[2],219,205,177,206,194,182,224,170,198,216,156,187,185,263,206,228,208,238,209,223,85,97,207,202,31,195,38,195;')
     # return
 
-    while (1):
+    while 1:
         setarray = input("input setarray")
         disppick = input("input disppick")
 
@@ -109,10 +99,7 @@ def main():
         for i in range(len(poses)):
             if i == 1:
                 print("if (!.OnlyFirstDun) {")
-            if i > 0:
-                tabs = "    "
-            else:
-                tabs = ""
+            tabs = "    " if i > 0 else ""
             print(
                 f'{tabs}naviregisterwarp("Warper > {names[i]}", "{gen_mapname(maps, i, diff)}", {poses[i][0]}, {poses[i][1]});')
             if i > 0 and i == len(poses) - 1:

@@ -70,11 +70,14 @@ def catfiles(filenames, rootdir,
     custom_include_guards = {}
     def banner(s):
         return f"\n\n\n{sepb}\n{sepf}\n// {s}\n// {repo}/{s}\n{sepf}\n{sepb}\n\n"
+
     def footer(s):
         return f"\n\n// (end {repo}/{s})\n"
+
     def incguard(filename):
         return custom_include_guards.get(filename,
                                          f"{filename.replace('.','_').replace('/','_').upper()}_")
+
     def replace_include(rx, match, line, guard):
         line = line.rstrip()
         incl = match.group(1)
@@ -92,28 +95,30 @@ def catfiles(filenames, rootdir,
             entry = to_inject[incl]
             del to_inject[incl]
             return append_file(entry.filename)
+
     def append_file(filename, guard=None):
         s = ""
         with open(filename) as f:
-            for line in f.readlines():
+            for line in f:
                 for rx in include_regexes:
                     match = rx.match(line)
                     if match:
                         line = replace_include(rx, match, line, guard)
                 s += line
         return s
+
     def append_cpp(filename):
         return f"""#ifdef {definition_macro}
 {append_file(filename)}
 #endif /* {definition_macro} */
 """
+
     def is_src(filename):
         return filename.endswith(".cpp") or filename.endswith(".c")
+
     def cmtline(line, more=""):
-        if len(line.strip()) > 0:
-            return f"// {line}{more}"
-        else:
-            return "//\n"
+        return f"// {line}{more}" if len(line.strip()) > 0 else "//\n"
+
     out = ""
     for entry in filenames:
         if isinstance(entry, onlyif):
@@ -130,7 +135,7 @@ def catfiles(filenames, rootdir,
             filename = f"{rootdir}/{entry.filename}"
             out += banner(entry.filename)
             with open(filename) as file:
-                for line in file.readlines():
+                for line in file:
                     out += cmtline(line)
         elif isinstance(entry, injcode):
             out += f"\n{entry.code}\n"
@@ -146,10 +151,7 @@ def catfiles(filenames, rootdir,
                 out += append_file(filename, entry.include_guard)
             else:
                 assert isinstance(entry, str)
-                if is_src(filename):
-                    out += append_cpp(filename)
-                else:
-                    out += append_file(filename)
+                out += append_cpp(filename) if is_src(filename) else append_file(filename)
             out += footer(entry)
     return f"""#ifndef {result_incguard}
 {out}
@@ -165,15 +167,18 @@ def include_only_first(file_contents: str):
     out = ""
     for line in file_contents.split("\n"):
         for expr in rx:
-            match = expr.match(line)
-            if match:
+            if match := expr.match(line):
                 incl = match.group(1)
                 if already_included.get(incl) is None:
                     already_included[incl] = line
                     if incl.endswith(".h"):
                         cpp_version = f"c{incl[:-2]}"
                         already_included[cpp_version] = line
-                    elif incl.startswith("c") and not (incl.endswith(".h") or incl.endswith(".hpp")):
+                    elif (
+                        incl.startswith("c")
+                        and not incl.endswith(".h")
+                        and not incl.endswith(".hpp")
+                    ):
                         c_version = f"{incl[1:]}.h"
                         already_included[c_version] = line
                 else:
@@ -191,8 +196,8 @@ def mkparser(**bool_args):
     for k, (default, help) in bool_args.items():
         # https://stackoverflow.com/questions/15008758/parsing-boolean-values-with-argparse
         feature = parser.add_mutually_exclusive_group(required=False)
-        yes = '--' + k
-        no = '--no-' + k
+        yes = f'--{k}'
+        no = f'--no-{k}'
         if default:
             yes_default = "this is the default"
             no_default = f"the default is {yes}"
@@ -209,8 +214,7 @@ def file_put_contents(filename: str, contents: str):
     if filename is None:
         print(contents)
     else:
-        dirname = os.path.dirname(filename)
-        if dirname:
+        if dirname := os.path.dirname(filename):
             os.makedirs(dirname, exist_ok=True)
         with open(filename, "w") as output:
             output.write(contents)

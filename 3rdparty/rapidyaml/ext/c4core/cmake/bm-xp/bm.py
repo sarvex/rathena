@@ -61,7 +61,7 @@ def copy_file_to_dir(file, dir):
 
 
 def chk(f):
-    log(f"looking for file:", f)
+    log("looking for file:", f)
     assert os.path.exists(f), f
     return f
 
@@ -245,7 +245,7 @@ def download_url(url, dst):
                 sz += len(chunk)
         log(f"........ finished: {sz}B")
     else:
-        log(f"         error:", req.status_code, url)
+        log("         error:", req.status_code, url)
 
 
 # ------------------------------------------------------------------------------
@@ -299,9 +299,8 @@ class BenchmarkCollection:
             filename = os.path.join(results_dir, filename)
             if os.path.exists(filename):
                 copy_file_to_dir(filename, dst_dir)
-            else:
-                if not filename.endswith("compile_commands.json"):
-                    raise Exception(f"wtf???? {filename}")
+            elif not filename.endswith("compile_commands.json"):
+                raise Exception(f"wtf???? {filename}")
         for name, specs in self.specs.bm.items():
             if not hasattr(specs, 'variants'):
                 filename = chk(f"{results_dir}/{name}.json")
@@ -382,8 +381,7 @@ class ResultMeta(Munch):
         cpu = self.cpu.storage_name
         sys = self.system.storage_name
         build = self.build.storage_name
-        name = f"{commit}/{cpu}-{sys}-{build}"
-        return name
+        return f"{commit}/{cpu}-{sys}-{build}"
 
     @staticmethod
     def get_commit(results_dir):
@@ -534,7 +532,7 @@ class CMakeCache(Munch):
 
 def iter_cmake_lines(filename):
     with open(filename) as f:
-        for line in f.readlines():
+        for line in f:
             line = line.strip()
             if line.startswith("#") or line.startswith("//") or len(line) == 0:
                 continue

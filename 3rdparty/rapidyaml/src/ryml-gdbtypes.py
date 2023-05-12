@@ -118,7 +118,7 @@ def get_str_value(d, value, limit=0):
 def __display_csubstr(d, value, limit=0):
     m_str, m_len = get_str_value(d, value)
     safe_len = min(m_len, MAX_SUBSTR_LEN_DISPLAY)
-    disp = m_str[0:safe_len]
+    disp = m_str[:safe_len]
     # ensure the string escapes characters like \n\r\t etc
     disp = disp.encode('unicode_escape').decode('utf8')
     # WATCHOUT. quotes in the string will make qtcreator hang!!!
@@ -176,31 +176,25 @@ def qdump__c4__yml__NodeScalar(d, value):
 
 def _format_enum_value(int_value, enum_map):
     str_value = enum_map.get(int_value, None)
-    display = f'{int_value}' if str_value is None else f'{str_value} ({int_value})'
-    return display
+    return f'{int_value}' if str_value is None else f'{str_value} ({int_value})'
 
 
 def _format_bitmask_value(int_value, enum_map):
-    str_value = enum_map.get(int_value, None)
-    if str_value:
+    if str_value := enum_map.get(int_value, None):
         return f'{str_value} ({int_value})'
-    else:
-        out = ""
-        orig = int_value
+    out = ""
+    orig = int_value
         # do in reverse to get compound flags first
-        for k, v in reversed(enum_map.items()):
-            if (k != 0):
-                if (int_value & k) == k:
-                    if len(out) > 0:
-                        out += '|'
-                    out += v
-                    int_value &= ~k
-            else:
-                if len(out) == 0 and int_value == 0:
-                    return v
-        if out == "":
-            return f'{int_value}'
-        return f"{out} ({orig})"
+    for k, v in reversed(enum_map.items()):
+        if k == 0:
+            if len(out) == 0 and int_value == 0:
+                return v
+        elif (int_value & k) == k:
+            if len(out) > 0:
+                out += '|'
+            out += v
+            int_value &= ~k
+    return f'{int_value}' if out == "" else f"{out} ({orig})"
 
 
 def _c4bit(*ints):
@@ -329,11 +323,7 @@ def qdump__c4__yml__NodeData(d, value):
 
 
 def _dump_node_index(d, name, value):
-    if int(value[name].integer()) == NPOS:
-        pass
-        #with SubItem(d, name):
-        #    d.putValue("-")
-    else:
+    if int(value[name].integer()) != NPOS:
         d.putSubItem(name, value[name])
 
 
@@ -345,7 +335,7 @@ def qdump__c4__yml__Tree(d, value):
     if d.isExpanded():
         #d.putArrayData(value["m_buf"], m_size, value["m_buf"].dereference())
         with Children(d):
-            with SubItem(d, f"[nodes]"):
+            with SubItem(d, "[nodes]"):
                 d.putItemCount(m_size)
                 d.putArrayData(value["m_buf"].pointer(), m_size, value["m_buf"].type.dereference())
             d.putPtrItem("m_buf", value["m_buf"].pointer())
@@ -365,7 +355,7 @@ def qdump__c4__yml__detail__stack(d, value):
     d.putItemCount(m_size)
     if d.isExpanded():
         with Children(d):
-            with SubItem(d, f"[nodes]"):
+            with SubItem(d, "[nodes]"):
                 d.putItemCount(m_size)
                 d.putArrayData(value["m_stack"].pointer(), m_size, T)
             d.putIntItem("m_size", value["m_size"])

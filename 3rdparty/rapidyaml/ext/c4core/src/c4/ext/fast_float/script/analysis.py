@@ -3,8 +3,8 @@ from math import floor
 def log2(x):
    """returns ceil(log2(x)))"""
    y = 0
-   while((1<<y) < x):
-     y = y + 1
+   while ((1<<y) < x):
+      y += 1
    return y
 
 

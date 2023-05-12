@@ -116,14 +116,15 @@ def parse_emotion_dict(filepath):
     ret_list = []
     with fileinput.FileInput(filepath) as fiFile:
         for line in fiFile:
-            found = re.search('"(E_[A-Z_0-9]+)"\s*,\s*(ET_[A-Z_0-9]+)\s*', line)
-            if found:
-                ret_list.append((found.group(1), found.group(2)))
+            if found := re.search(
+                '"(E_[A-Z_0-9]+)"\s*,\s*(ET_[A-Z_0-9]+)\s*', line
+            ):
+                ret_list.append((found[1], found[2]))
     return ret_list
 
 emotion_dict = collections.OrderedDict(parse_emotion_dict(parse_dict_file))
 
-emotion_array = [val for val in emotion_dict.values()]
+emotion_array = list(emotion_dict.values())
 pattern_oldconst = re.compile(r'\b(' + '|'.join(emotion_dict.keys()) + r')\b', re.IGNORECASE)
 pattern_value = re.compile(r'\b(' + '|'.join(["emotion\s+%d+"%i for i in range(len(emotion_array))]) + r')\b', re.IGNORECASE)
 
@@ -138,7 +139,10 @@ def apply_substitutions(new_line, is_script):
     remove_backup = False if rpl_cnt > 0 else remove_backup
     if is_script: # script only replacements
         # 0 -> ET_SURPRISE
-        new_line, rpl_cnt = pattern_value.subn(lambda x: 'emotion '+emotion_array[int(x.group().split()[-1])], new_line)
+        new_line, rpl_cnt = pattern_value.subn(
+            lambda x: f'emotion {emotion_array[int(x.group().split()[-1])]}',
+            new_line,
+        )
         remove_backup = False if rpl_cnt > 0 else remove_backup
         # emotion e,0,"Record player#e152a01"; -> emotion e, getnpcid(0,"Record player#e152a01");
         new_line, rpl_cnt = re.subn(r"emotion\s+([^,]+)\s*,\s*0\s*,\s*([^;]+);",
@@ -156,7 +160,9 @@ def apply_substitutions(new_line, is_script):
     return new_line, remove_backup
 
 def replace_emoticons_in_file(filename):
-    is_script = True if any([filename.endswith(script_ext) for script_ext in script_file_extensions]) else False
+    is_script = any(
+        filename.endswith(script_ext) for script_ext in script_file_extensions
+    )
     remove_backup = True
     with fileinput.FileInput(filename, inplace=True, backup=BACKUP_EXT) as fiFile:
         try:
@@ -172,13 +178,14 @@ def replace_emoticons_in_file(filename):
             revert_to_backup(filename)
 
 
-fileiter = (os.path.join(root, f)
-    for conv_folder in convert_folders 
+fileiter = (
+    os.path.join(root, f)
+    for conv_folder in convert_folders
     for root, _, files in os.walk(conv_folder)
     for f in files
-    if any([f.endswith(wl) for wl in wl_file_extensions])
-    if not any([bl in f for bl in bl_files])
-    )
+    if any(f.endswith(wl) for wl in wl_file_extensions)
+    if all(bl not in f for bl in bl_files)
+)
 
 for f in fileiter:
     print("Updating file", f)
